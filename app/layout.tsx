@@ -50,11 +50,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default: 'Muhammad Sulthan Fajri Rabbani — Portfolio',
-      template: '%s | Sulthan Fajri',
+      default: 'Portfolio Website',
+      template: '%s | Portfolio',
     },
-    description:
-      'Portfolio Muhammad Sulthan Fajri Rabbani, Mahasiswa Informatika UIN Sultan Maulana Hasanuddin Banten sekaligus Graphic Designer.',
+    description: 'Portfolio CMS built with Next.js and Supabase.',
   }
 }
 
