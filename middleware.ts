@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Batas waktu 4 detik untuk setiap request ke Supabase — mencegah 504 Gateway Timeout
-function withTimeout<T>(promise: Promise<T>, ms = 4000): Promise<T> {
+// Batas waktu 4 detik — mencegah 504 Gateway Timeout
+// Menerima PromiseLike agar kompatibel dengan Supabase PostgrestBuilder
+function withTimeout<T>(thenable: PromiseLike<T>, ms = 4000): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(thenable),
     new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), ms)
     ),
@@ -40,8 +41,8 @@ export async function middleware(request: NextRequest) {
 
   let user = null
   try {
-    const { data } = await withTimeout(supabase.auth.getUser())
-    user = data.user
+    const authResult = await withTimeout(supabase.auth.getUser())
+    user = authResult.data.user
   } catch {
     // Jika Supabase timeout/error, jangan block request — lewatkan saja
     return supabaseResponse
@@ -61,15 +62,17 @@ export async function middleware(request: NextRequest) {
 
     // Cek apakah user adalah admin
     try {
-      const { data: adminUser } = await withTimeout(
-        supabase
-          .from('admin_users')
-          .select('id')
-          .eq('user_id', user.id)
-          .single()
+      const adminResult = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('admin_users')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+        )
       )
 
-      if (!adminUser) {
+      if (!adminResult.data) {
         // User ada tapi bukan admin → access denied
         const deniedUrl = request.nextUrl.clone()
         deniedUrl.pathname = '/admin/login'
@@ -88,15 +91,17 @@ export async function middleware(request: NextRequest) {
   // Jika sudah login dan mencoba akses /admin/login → redirect ke dashboard
   if (pathname === '/admin/login' && user) {
     try {
-      const { data: adminUser } = await withTimeout(
-        supabase
-          .from('admin_users')
-          .select('id')
-          .eq('user_id', user.id)
-          .single()
+      const adminResult = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('admin_users')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+        )
       )
 
-      if (adminUser) {
+      if (adminResult.data) {
         const dashboardUrl = request.nextUrl.clone()
         dashboardUrl.pathname = '/admin'
         return NextResponse.redirect(dashboardUrl)
