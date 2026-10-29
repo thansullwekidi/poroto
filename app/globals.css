@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Explicit source scanning untuk Vercel deployment - Tailwind v4 */
+@source "../app";
+@source "../components";
+
 @layer base {
   :root {
     --primary: #06b6d4;
